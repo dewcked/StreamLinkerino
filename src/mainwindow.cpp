@@ -7,7 +7,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
   // Setup UI
   ui->setupUi(this);
   MainWindow::setupUI();
-  qDebug() << "asdf";
   // Setup Modules
   _Submodules = new Submodules::SubmodulesDialog;
   connect(_Submodules, &Submodules::SubmodulesDialog::settingFinished, this, &MainWindow::initialize);
@@ -34,6 +33,7 @@ void MainWindow::setupUI()
   MainWindow::setupDarktheme();
 
   // Hide menubar & statusbar
+  this->setWindowTitle(QString("Streamlinkerino"));
   ui->menubar->hide();
   ui->statusbar->hide();
 

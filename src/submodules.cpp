@@ -7,6 +7,7 @@ SubmodulesDialog::SubmodulesDialog(QWidget *parent)
     : QDialog(parent), ui(new Ui::SubmodulesDialog), isInit(true)
 {
   ui->setupUi(this);
+  this->setWindowTitle(QString("Settings"));
   this->hide();
   hideAlerts();
   setupConnections();
