@@ -1,3 +1,5 @@
 build/
-./streamlinkerino.pro.user
-streamlinkerino.pro.user
+src/streamlinkerino.pro.qtds
+src/streamlinkerino.pro.user
+src/qdarkstyle
+src/qdarkstyle/*
