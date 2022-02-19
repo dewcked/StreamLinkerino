@@ -63,6 +63,7 @@ private slots:
 protected:
   void resizeEvent(QResizeEvent *event) override;
   bool eventFilter(QObject *obj, QEvent *event);
+  void closeEvent(QCloseEvent *event);
 
 private:
   Ui::MainWindow *ui;

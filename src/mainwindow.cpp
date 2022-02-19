@@ -113,23 +113,24 @@ void MainWindow::quitChatterino()
   qDebug2() << "MainWindow::quitChatterino()";
   _lChatterinoLock = true;
   _wChatterinowindow->hide();
-  QTimer::singleShot(1000, this,
-                     [=]()
-                     {
-                       _wChatterinowindow->setParent(nullptr);
-                       system("taskkill /IM \"chatterino.exe\"");
-                       _lChatterinoLock = false;
-                     });
+  _wChatterinowindow->setParent(nullptr);
+  QString command = QString("taskkill /pid " + QString::number(_pChatterinoProcess->processId(), 10));
+  QByteArray ba = command.toLocal8Bit();
+  const char *c_str = ba.data();
+  system(c_str);
+  _lChatterinoLock = false;
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+  MainWindow::quit();
+  event->ignore();
 }
 
 void MainWindow::quit()
 {
   // Add graceful quit
-  _lChatterinoLock = true;
-  _wChatterinowindow->hide();
-  _wChatterinowindow->setParent(nullptr);
-  system("taskkill /IM \"chatterino.exe\"");
-  _lChatterinoLock = false;
+  MainWindow::quitChatterino();
   _pStreamlinkProcess.at(0)->kill(); // terminate doesn't work properly on Windows
   _pStreamlinkProcess.at(1)->kill(); // terminate doesn't work properly on Windows
   QApplication::quit();
@@ -434,6 +435,7 @@ void MainWindow::loadStream()
   MainWindow::quitChatterino();
   // Load channel if new channel exists
   QTimer *loadStream = new QTimer(this);
+  _lChatterinoLock = true;
   connect(loadStream, &QTimer::timeout, this,
           [=]()
           {
