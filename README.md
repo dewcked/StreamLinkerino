@@ -1,3 +1,7 @@
+
+# Windows port of [Original StreamLinkerino](https://github.com/JohnCiubuc/StreamLinkerino) project
+
+
 ## Official Chatterino Implementation
 
 Integration of this application into a first-class chatterino feature is currently in process. Pull request can be [viewed here](https://github.com/Chatterino/chatterino2/pull/2854)
