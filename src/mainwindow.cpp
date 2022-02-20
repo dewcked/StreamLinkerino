@@ -103,7 +103,7 @@ void MainWindow::setupCustomContextMenu()
   _contextMenuActions << new QAction("Settings", this) << new QAction("Load Stream", this) << new QAction("Quit", this) << new QAction("Experimental", this);
   connect(_contextMenuActions[0], SIGNAL(triggered()), _Submodules, SLOT(showDialog()));
   connect(_contextMenuActions[1], SIGNAL(triggered()), this, SLOT(loadStream()));
-  connect(_contextMenuActions[2], SIGNAL(triggered()), this, SLOT(quit()));
+  connect(_contextMenuActions[2], SIGNAL(triggered()), this, SLOT(close()));
   _contextMenu.addActions(_contextMenuActions);
 }
 
@@ -114,26 +114,22 @@ void MainWindow::quitChatterino()
   _lChatterinoLock = true;
   _wChatterinowindow->hide();
   _wChatterinowindow->setParent(nullptr);
-  QString command = QString("taskkill /pid " + QString::number(_pChatterinoProcess->processId(), 10));
-  QByteArray ba = command.toLocal8Bit();
-  const char *c_str = ba.data();
-  system(c_str);
-  _lChatterinoLock = false;
+  _pChatterinoProcess->terminate();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-  MainWindow::quit();
-  event->ignore();
-}
-
-void MainWindow::quit()
-{
-  // Add graceful quit
   MainWindow::quitChatterino();
   _pStreamlinkProcess.at(0)->kill(); // terminate doesn't work properly on Windows
   _pStreamlinkProcess.at(1)->kill(); // terminate doesn't work properly on Windows
-  QApplication::quit();
+  QTimer *exit = new QTimer();
+  connect(exit, &QTimer::timeout, this,
+          [=]()
+          {
+            if (_pChatterinoProcess->state() == QProcess::NotRunning && _pStreamlinkProcess.at(0)->state() == QProcess::NotRunning && _pStreamlinkProcess.at(0)->state() == QProcess::NotRunning)
+              event->accept();
+          });
+  exit->start(10);
 }
 
 // Show context menu
@@ -288,7 +284,7 @@ void MainWindow::setupStreamlink()
     if (_pStreamlinkProcess.at(!_bStreamlinkProcessSelector)->state() != QProcess::NotRunning)
     {
       QTimer::singleShot(600, this, [=]()
-                         { _pStreamlinkProcess.at(!_bStreamlinkProcessSelector)->kill(); }); // terminate doesn't work on Windows
+                         { _pStreamlinkProcess.at(!_bStreamlinkProcessSelector)->terminate(); });
     }
     resizeEmbeds();
   }
@@ -439,6 +435,7 @@ void MainWindow::loadStream()
   connect(loadStream, &QTimer::timeout, this,
           [=]()
           {
+            qDebug() << _pChatterinoProcess->state();
             if (_pChatterinoProcess->state() == QProcess::NotRunning)
             {
               QString channel = loadCurrentChannel();

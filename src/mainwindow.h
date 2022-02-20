@@ -58,7 +58,6 @@ private slots:
   void initialize();
   void refreshStream();
   void loadStream();
-  void quit();
 
 protected:
   void resizeEvent(QResizeEvent *event) override;
