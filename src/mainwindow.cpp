@@ -284,7 +284,7 @@ void MainWindow::setupStreamlink()
     if (_pStreamlinkProcess.at(!_bStreamlinkProcessSelector)->state() != QProcess::NotRunning)
     {
       QTimer::singleShot(600, this, [=]()
-                         { _pStreamlinkProcess.at(!_bStreamlinkProcessSelector)->terminate(); });
+                         { _pStreamlinkProcess.at(!_bStreamlinkProcessSelector)->kill(); });
     }
     resizeEmbeds();
   }
@@ -356,7 +356,7 @@ void MainWindow::initialize()
       {
         _lChatterinoLock = true;
         _bChatterinoEmbedded = false;
-        _pChatterinoProcess->terminate();
+        quitChatterino();
         QTimer *restart = new QTimer(this);
         connect(restart, &QTimer::timeout, this,
                 [=]()
