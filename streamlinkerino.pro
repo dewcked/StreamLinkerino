@@ -3,31 +3,23 @@ QT       += core gui
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++11
-# You can make your code fail to compile if it uses deprecated APIs.
-# In order to do so, uncomment the following line.
-#DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-INCLUDEPATH       += src/
 SOURCES += \
-    src/ChatterinoMonitor.cpp \
     src/main.cpp \
-    src/MainWindow.cpp \
-    src/Submodules.cpp \
-    src/WindowsMatchingPID.cpp
+    src/mainwindow.cpp \
+    src/submodules.cpp \
+    src/windark.cpp \
+    src/windows_interface.cpp
 
 HEADERS += \
-    src/ChatterinoMonitor.h \
-    src/MainWindow.h \
-    src/Submodules.h \
-    src/WindowsMatchingPID.h
+    src/debugging.h \
+    src/mainwindow.h \
+    src/submodules.h \
+    src/windark.h \
+    src/windows_interface.h
 
 FORMS += \
-    src/Forms/MainWindow.ui \
-    src/Forms/SubmodulesDialog.ui
+    src/Forms/mainwindow.ui \
+    src/Forms/submodulesDialog.ui
 
-# Default rules for deployment.
-qnx: target.path = /tmp/$${TARGET}/bin
-else: unix:!android: target.path = /opt/$${TARGET}/bin
-!isEmpty(target.path): INSTALLS += target
-
-LIBS += -lX11
+LIBS += -luser32

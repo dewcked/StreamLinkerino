@@ -1,107 +1,52 @@
-## Official Chatterino Implementation
+## Streamlinkerino for Windows
 
-Integration of this application into a first-class chatterino feature is currently in process. Pull request can be [viewed here](https://github.com/Chatterino/chatterino2/pull/2854)
+This project is an unofficial window porting of Streamlinkerino. For more information, take a look at [Official Streamlinkerino README page](https://github.com/JohnCiubuc/StreamLinkerino#official-chatterino-implementation).
 
-## Testing Branch
+## Experimental Features
 
-**Testing branch does not require chatterino to be patched**, but it does have a considerable delay (5-10s) on switching streams due to chatterino json writing frequency.
+Windows port of Streamlinkerino provides experimental features. As porting isn't completely done, some features from original project may be possible and some maybe not.
 
-## Pre-Release Windows Port
+### Known Issues and bugs
 
-[dewcked](https://github.com/dewcked) is working on a windows port version of this project. Repository can be viewed here:  [https://github.com/dewcked/StreamLinkerino/releases](https://github.com/dewcked/StreamLinkerino/releases)
+1. Streamlinkerino implementation use `--wid` argument to execute streamlink with mpv player, but in Windows original features of mpv player is not possible.
+2. Focusing problem occurs between embeded chatterino window and main window. So if shortcuts doesn't work, just click title bar or screen (not Chatterino area) once. Also, **double-click Chatterino channel to load stream** function makes main window lose focus.
+3. Currently, `load stream` function needs specific logic that prompts and close a window briefly.
+4. Don't ever try to touch minimize button in embedded Chatterino. If you did so, only way to recover Chatterino is to restart or click `load stream` from context menu.
+5. Settings and screen messages doesn't work properly. Gonna fix this soon..
 
-## streamlinkerino
-Ever wanted to use StreamLink + MPV + Chatterino all in one application? Look no further, as this project has your solution!
+### Features
 
-streamlinkerino embeds MPV (using [StreamLink](https://streamlink.github.io/index.html) as its base) and [Chatterino](https://chatterino.com/) into one application. If you patch Chatterino [(Git Link)](https://github.com/Chatterino/chatterino2) with the supplied patch file, the MPV stream will auto-update if you switch channels in Chatterino!
+- press `f` or `double-click screen` to enable/disable fullscreen mode
+- press `w` to enable/disable frameless window mode
+- press `esc` to disable fullscreen
+- `double-click Chatterino channel` to load stream
+- right-click screen to open context menu
+  - You can open `Settings`, `Load Stream` or `Close` application
 
-## Why does this application exist
+### Usabilities
 
-This project was created for the following reasons:
-1. Avoiding usage of the twitch web application
-	* It is unfortunately laggy and resource heavy
-	* Embedded stream ads can not be avoided
-	* Twitch Player is feature poor (compared to other players)
-	* Several bug with streams not loading when using third party extensions like FFZ/BTTV
-2. Avoiding Electron / JS applications
-	* Alternatives such as [StreamLink Twitch GUI](https://streamlink.github.io/streamlink-twitch-gui/) do exist, but you still have to deal with the resource heaviness of electron-based apps and the website itself
-3. Performance
-	* The base app and chatterino is C++/Qt. The Player is MPV and StreamLink is used for an ad-free stream experience. 
-	* The result is a light weight, high performance twitch client
+- Windows dark theme supported. To turn on this, press `Window logo` button and search setting `dark mode`. This is supported only for upper than specific version of Windows 10
+- Auto screen resize
+  - Responsive for both resizing Chatterino and main window
+- Fit screen edge and adjusted screen position to center
+- Draggable screen (Like default window drag behavior)
 
-    
-## Features
+## Building
 
-1. High performance, low memory, and responsive
+[My gist](https://gist.github.com/dewcked) shows how to Install Qt framework with Aqtinstall in Windows. Also, for code formatting. I recommend you to use Qt Creator for editting source codes.
 
-2. No mid-roll ads (Thanks streamlink!)
+To compile your project, just clck build button at bottom-left edge. You can find build directory in Project tab (in left area).
 
-3. MPV player features:
+To deploy this to normal users, you need to use `windeployqt.exe` in Qt directory. In my case, Qt directory was `C:\Qt\6.3.0\msvc2019_64\bin`.
 
-    * Pause
-    * Rewind
-    * Fast forward
-    * And more!
+move executable file (generated from build) into empty path and run command like below:
 
-4. Streamlink and Chatterino Integration
+```
+C:\Qt\6.3.0\msvc2019_64\bin\windeployqt.exe <Path-to-executable>
+```
 
-5. Seamless stream switching (Chatterino patch required)
+then everything is done automatically. Just ZIP it and deploy.
 
-## Building 
-
-Building streamlinkerino
-
-Contributed by [dewcked](https://github.com/dewcked) from [Release #22](https://github.com/JohnCiubuc/StreamLinkerino/issues/22):
-
-
-1. Install docker and git
-2. `git clone https://github.com/JohnCiubuc/streamlinkerino.git --recurse-submodules`
-3. `git submodule update --recursive --remote`
-4. `cd streamlinkerino`
-5. Pull docker image from [Here](https://github.com/OlivierLDff/QtLinuxCMakeDocker).
- * Linux) `docker run -it --rm -v $(pwd):/src/ --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined reivilo1234/qt-linux-cmake:qt5.15.1 bash`
- * Windows) `docker run -it --rm -v %CD%:/src/ --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined reivilo1234/qt-linux-cmake:qt5.15.1 bash`
-6. `mkdir build && cd build`
-7. `cmake ../src && make`
-
-
-## Patching Chatterino
-
-1.  Copy `chatterino.patch` from the streamlinkerino Patch directory, into chatterino's submodule project directory (same location as `chatterino.pro`)
-2. `patch -p0 < chatterino.patch`
-3. Create build folder `mkdir build && cd build`
-4. Go into `build` directory
-5.   `qmake .. && make`
-
-
-## TODO:
-
-~~1. Detect if streamlink is installed, and if not, prompt user~~
-
-~~2. Detect if chatterino is installed, and if not, prompt user~~
-
-~~3. On switching streams, setup two mpv clients -- one playing current stream and the other loading new stream. When new stream finishes loading, swap to the new client~~
-
-4. Currently can only change stream based on chatterino. Add option to change stream ignoring chatterino (or if chatterino isn't patched)
-
-5. Resize chatterino window
-
-~~6. Create a settings dialog to specify streamlink/chatterino location and settings~~
-
-~~7. Link the settings button in chatterino (if patched) with the settings dialogue in streamlinkerino~~
-
-8. Auto apply patch and build chatterino together with streamlinkerino via CMakeLists
-
-
-	
 ## Screenshots
-![ss1](https://github.com/JohnCiubuc/JohnCiubucGifs/raw/main/screenshots/streamlinkerino1.png)
 
-(Older Version)
-<p align="center">
-  <img src="https://raw.githubusercontent.com/JohnCiubuc/JohnCiubucGifs/main/streamlinkerino.gif" />
-</p>
-(Current Version)
-<p align="center">
-  <img src="https://raw.githubusercontent.com/JohnCiubuc/JohnCiubucGifs/main/streamlinkerino2.gif" />
-</p>
+Not yet :)
