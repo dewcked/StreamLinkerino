@@ -2,6 +2,10 @@
 
 This project is an unofficial window porting of Streamlinkerino. For more information, take a look at [Official Streamlinkerino README page](https://github.com/JohnCiubuc/StreamLinkerino#official-chatterino-implementation).
 
+### Downloads
+
+`Click tag under Releases > Click Assets -> Download and Extract ZIP`
+
 ## Experimental Features
 
 Windows port of Streamlinkerino provides experimental features. As porting isn't completely done, some features from original project may be possible and some maybe not.
