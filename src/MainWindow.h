@@ -23,10 +23,6 @@
 #include <QTimer>
 #include <QWindow>
 #include <thread>
-// test
-#include <cstdio>
-#include <tlhelp32.h>
-#include <windows.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -43,6 +39,10 @@ public:
   MainWindow(QWidget *parent = nullptr);
   ~MainWindow();
 
+signals:
+  void loadChannel();
+  void refreshChannel();
+
 private slots:
   void setupUI();
   void setupCustomContextMenu();
@@ -50,53 +50,133 @@ private slots:
   void showContextMenu(const QPoint &pos);
   // Main logic
   void setupChatterino();
-  void setupStreamlink();
-  void setupMVP();
-  QString loadCurrentChannel();
+  void setupStream();
+  void setupMPV();
   void initialize();
   void refreshStream();
   void loadStream();
   void experimental();
+  void resizeEmbeds();
+  QString loadCurrentChannel();
+
   //  static void controlVolume(WId handle, bool isPositive, int quantity);
 
 protected:
   void resizeEvent(QResizeEvent *event) override;
-  bool eventFilter(QObject *obj, QEvent *event);
-  void closeEvent(QCloseEvent *event);
+  bool eventFilter(QObject *obj, QEvent *event) override;
+  void closeEvent(QCloseEvent *event) override;
 
 private:
   Ui::MainWindow *ui;
   // Main logic
-  void resizeEmbeds();
+
   QString generateStatusHTML(bool bPrerollAds = false);
-  void quitChatterino();
-  void quitChatterino_();
-  void initChatterinoFocus();
-  void simulateMouse(unsigned int pos, INPUT *inputs);
+  void quitStream(qint32 index);
 
   WindowsInterface _WMP;
   Submodules::SubmodulesDialog *_Submodules;
-  QWidget *_chatContainer;
-  QWidget *_mpvContainer;
   QMenu *_contextMenu;
   QList<QAction *> _contextMenuActions;
-  QList<QProcess *> _pStreamlinkProcess;
-  QProcess *_pChatterinoProcess;
-  QWindow *_wChatterinoWindow;
-  QTimer *monitorChatterinoWidth = new QTimer;
-  QTimer *monitorChatterinoHeight = new QTimer;
+  bool _bIsMenuOff = true;
+  // Chatterino
+  typedef struct ChatContainer : public QObject
+  {
+    QProcess *process;
+    QWidget *widget;
+    QWindow *window;
+    // TODO: replace monitor to connect() event trigger
+    QTimer *sizer;
+    bool lock = false;
+    bool embedded = false;
+    // int _chatterinoWidth;
+    // int _chatterinoHeight;
+    void quit()
+    {
+      sizer->stop();
+      QSettings settings = QSettings(QSettings::NativeFormat, QSettings::UserScope, "streamlinkerino", "streamlinkerino"); // Registry setting
+      settings.beginGroup("chatterino");
+      settings.setValue("embeddedsize_x", window->width());
+      settings.endGroup();
+      window->setParent(nullptr);
+      process->terminate();
+      embedded = false;
+    }
+    void exit()
+    {
+      sizer->stop();
+      window->setParent(nullptr);
+      QSettings settings = QSettings(QSettings::NativeFormat, QSettings::UserScope, "streamlinkerino", "streamlinkerino"); // Registry setting
+      settings.beginGroup("chatterino");
+      quint32 defaultPos_x = settings.value("pos_x", 0).toUInt();
+      quint32 defaultPos_y = settings.value("pos_y", 0).toUInt();
+      quint32 defaultSize_x = settings.value("size_x", 0).toUInt();
+      quint32 defaultSize_y = settings.value("size_y", 0).toUInt();
+      settings.setValue("embeddedsize_x", window->width());
+      settings.endGroup();
+      window->setPosition(QPoint(defaultPos_x, defaultPos_y));
+      window->setWidth(defaultSize_x);
+      window->setHeight(defaultSize_y);
+      process->terminate();
+      embedded = false;
+    }
+    bool isRunning()
+    {
+      return process->state() != QProcess::NotRunning;
+    }
+    bool isEmbedded()
+    {
+      return embedded;
+    }
+    void setEmbedded(bool param)
+    {
+      embedded = param;
+    }
+  } ChatContainer;
+
+  ChatContainer *_ChatContainer;
+
+  // MPV & Streamlink
+  // TODO: Store stream?.... ffmpeg?
+  // TODO2: concurrent stream?...
+  typedef struct MPVContainer : public QObject
+  {
+    QWidget *widget;
+    QWindow *window;
+    bool embedded = false;
+    bool isEmbedded()
+    {
+      return embedded;
+    }
+    void setEmbedded(bool param)
+    {
+      embedded = param;
+    }
+  } MPVContainer;
+  typedef struct StreamContainer : public QObject
+  {
+    MPVContainer *MPV;
+    QProcess *streamlinkProcess;
+    QString channel;
+    void quit()
+    {
+      // MPV->process->kill();
+      streamlinkProcess->kill();
+    }
+    bool isRunning()
+    {
+      return streamlinkProcess->state() != QProcess::NotRunning;
+    }
+  } StreamContainer;
+  QList<StreamContainer *> _StreamContainer;
+  MPVContainer *_MPVContainer;
+  qsizetype _bStreamSelector = 1;
+  qsizetype _bStreamLimit = 2;
+  bool _bStreamConcurrent = false; // TODO: switch to already opened channel with volume replacement
+  bool _bStreamLock = true;
+  bool _bDoubleClickedChannel = false;
+  // Debug
+  bool _bDebug = true;
   int _chatterinoWidth;
   int _chatterinoHeight;
-  bool _lChatterinoLock = false;
-  bool _bChatterinoEmbedded = false;
-  QString _cChatChannel;
-  unsigned long _mpvContainerWID;
-  bool _bStreamlinkProcessSelector = false;
-  bool _bStreamlinkAllowSwitching = false;
-  bool _bDebug = true;
-  bool _bLeftMouseButtonPressed = false;
-  QPoint _dragMousePos;
-  QPoint _dragMainWindowPos;
-  bool _bIsMenuOff = true;
 };
 #endif // MAINWINDOW_H

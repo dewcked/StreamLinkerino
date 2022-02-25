@@ -9,6 +9,7 @@
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QSettings>
+
 //#include <QComboBox>
 
 #define db qDebug() << this <<
@@ -32,7 +33,7 @@ namespace Submodules
   public:
     Streamlink(QString quality);
     ~Streamlink();
-    QStringList getArgs(QString channel, unsigned long mpvContainer);
+    QStringList getArgs(QString channel, WId mpvContainer);
 
     void setQuality(QString quality);
 
@@ -58,7 +59,7 @@ namespace Submodules
     QString streamlinkArguments();
     QString streamlinkQuality();
 
-    QStringList getStreamLinkArguments(QString channel, unsigned long mpvContainer);
+    QStringList getStreamLinkArguments(QString channel, WId mpvContainer);
 
     int getChanges();
     ;

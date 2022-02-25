@@ -54,9 +54,7 @@ void MainWindow::setupUI()
   if (screenSize_x >= 500 && screenSize_x <= screenSize.width() && screenSize_y <= screenSize.height())
     this->resize(screenSize_x, screenSize_y);
   else
-  {
     this->resize(screenSize.width() * 0.7, screenSize.height() * 0.7);
-  }
 }
 
 // Setup custom context menu
@@ -73,32 +71,25 @@ void MainWindow::setupCustomContextMenu()
   _contextMenu->addActions(_contextMenuActions);
 }
 
-void MainWindow::quitChatterino()
-{
-  // Setting part (need to revert)
-  qDebug2() << "MainWindow::quitChatterino()";
-  _lChatterinoLock = true;
-  _wChatterinoWindow->setParent(nullptr);
-  _pChatterinoProcess->terminate();
-}
-
+// Close event occurred when terminating Streamlinkerino
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-  MainWindow::quitChatterino();
-  _pStreamlinkProcess.at(0)->kill(); // terminate doesn't work properly on Windows
-  _pStreamlinkProcess.at(1)->kill(); // terminate doesn't work properly on Windows
-  QTimer *exit = new QTimer();
-  connect(exit, &QTimer::timeout, this,
-          [=]()
-          {
-            if (_pChatterinoProcess->state() == QProcess::NotRunning && _pStreamlinkProcess.at(0)->state() == QProcess::NotRunning && _pStreamlinkProcess.at(0)->state() == QProcess::NotRunning)
-              event->accept();
-          });
-  exit->start(10);
+  QSettings settings = QSettings(QSettings::NativeFormat, QSettings::UserScope, "streamlinkerino", "streamlinkerino"); // Registry setting
+  settings.beginGroup("screen");
+  settings.setValue("screenpos_x", this->pos().x());
+  settings.setValue("screenpos_y", this->pos().y());
+  settings.setValue("screensize_x", this->width());
+  settings.setValue("screensize_y", this->height());
+  settings.endGroup();
+  foreach (auto streamContainer, _StreamContainer)
+    streamContainer->quit();
+  _ChatContainer->exit();
+  _ChatContainer->process->waitForFinished();
+  event->accept();
 }
 
 // Show context menu
-void MainWindow::showContextMenu(const QPoint &pos) // this is a slot
+void MainWindow::showContextMenu(const QPoint &pos)
 {
   qDebugSlot() << "MainWindow::showContextMenu(const QPoint &pos)";
   // Temporary fix for bug: Context menu popups twice for first attempt
@@ -118,73 +109,78 @@ void MainWindow::showContextMenu(const QPoint &pos) // this is a slot
 // TODO: When toggling FramelessWindowHint, Focus is not working properly - https://doc.qt.io/archives/qt-4.8/qwidget.html#clearFocus
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 {
-
-  if (event->type() == QEvent::KeyPress && obj->isWindowType())
+  if (event != nullptr && obj->isWindowType())
   {
-    QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-    switch (keyEvent->key())
+    switch (event->type())
     {
-    case Qt::Key_W:
-      if (this->windowFlags().testFlag(Qt::FramelessWindowHint))
-        this->setWindowFlag(Qt::FramelessWindowHint, false);
-      else
-        this->setWindowFlag(Qt::FramelessWindowHint, true);
-      show();
+    case QEvent::KeyPress:
+      if (!this->isActiveWindow())
+        break;
+      switch (static_cast<QKeyEvent *>(event)->key())
+      { // TODO: find possible bugs
+      case Qt::Key_W:
+        // qDebug() << "Qt::Key_W";
+        if (this->windowFlags().testFlag(Qt::FramelessWindowHint))
+          this->setWindowFlag(Qt::FramelessWindowHint, false);
+        else
+          this->setWindowFlag(Qt::FramelessWindowHint, true);
+        show();
+        break;
+      case Qt::Key_F:
+        // qDebug() << "Qt::Key_F";
+        if (this->windowState() == Qt::WindowFullScreen)
+          this->setWindowState(Qt::WindowNoState);
+        else
+          this->setWindowState(Qt::WindowFullScreen);
+        break;
+      case Qt::Key_Escape:
+        if (this->windowState() == Qt::WindowFullScreen)
+          this->setWindowState(Qt::WindowNoState);
+        break;
+      case Qt::Key_Plus:
+      case Qt::Key_0:
+        break;
+      case Qt::Key_Minus:
+      case Qt::Key_9:
+        break;
+      }
       break;
-    case Qt::Key_F:
+    case QEvent::MouseButtonPress:
+      // qDebug() << "QEvent::MouseButtonPress" << event << obj;
+      if (!_bIsMenuOff || !this->isActiveWindow())
+        break;
+      if (static_cast<QMouseEvent *>(event)->button() == Qt::LeftButton)
+        this->windowHandle()->startSystemMove();
+      //      else if (static_cast<QMouseEvent *>(event)->button() == Qt::RightButton)
+      //        this->windowHandle()->startSystemMove();
+      break;
+    case QEvent::MouseButtonRelease:
+      // qDebug() << "QEvent::MouseButtonRelease" << event << obj;
+      if (static_cast<QMouseEvent *>(event)->button() == Qt::LeftButton)
+      {
+        QPoint calc = mapToGlobal(ui->widget->pos()) - static_cast<QMouseEvent *>(event)->globalPosition().toPoint();
+        if (calc.x() < 0 && calc.y() < 0 && _ChatContainer->isEmbedded())
+        {
+          _ChatContainer->setEmbedded(false);
+          _bDoubleClickedChannel = true;
+          loadStream();
+        }
+      }
+      else if (static_cast<QMouseEvent *>(event)->button() == Qt::RightButton)
+        showContextMenu(static_cast<QMouseEvent *>(event)->globalPosition().toPoint());
+      break;
+    case QEvent::MouseButtonDblClick:
+      if (!this->isActiveWindow())
+        break;
+      // qDebug() << "QEvent::MouseButtonDblClick" << event << obj;
       if (this->windowState() == Qt::WindowFullScreen)
         this->setWindowState(Qt::WindowNoState);
       else
         this->setWindowState(Qt::WindowFullScreen);
       break;
-    case Qt::Key_Escape:
-      if (this->windowState() == Qt::WindowFullScreen)
-        this->setWindowState(Qt::WindowNoState);
+    default:
       break;
-      //    case Qt::Key_Plus:
-      //      controlVolume(_mpvContainer->winId(), true, 10);
-      //      break;
     }
-    //    qDebug() << "key " << keyEvent->key() << "from" << obj;
-  }
-  else if (event->type() == QEvent::MouseButtonPress && obj->isWindowType() && _bIsMenuOff && this->isActiveWindow())
-  {
-    QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(event);
-    if (mouseEvent->button() == Qt::LeftButton)
-    {
-      qDebug() << "Pressed!";
-      //      _dragMainWindowPos = this->pos();
-      //      _dragMousePos = mouseEvent->globalPosition().toPoint();
-      this->windowHandle()->startSystemMove();
-    }
-    // qDebug() << this->x() + this->width() - 100 << this->y() + 50 << mouseEvent->globalPosition().toPoint();
-  }
-  else if (event->type() == QEvent::MouseButtonRelease && obj->isWindowType())
-  {
-    QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(event);
-    qDebug() << "Released!" << mouseEvent->button();
-    qDebug() << event << obj;
-    if (mouseEvent->button() == Qt::LeftButton)
-    {
-      qDebug() << mapToGlobal(ui->widget->pos()) << mouseEvent->globalPosition().toPoint();
-      QPoint calc = mapToGlobal(ui->widget->pos()) - mouseEvent->globalPosition().toPoint();
-      if (calc.x() < 0 && calc.y() < 0)
-      {
-        quitChatterino();
-        loadStream();
-      }
-    }
-    else if (mouseEvent->button() == Qt::RightButton)
-    {
-      showContextMenu(mouseEvent->globalPosition().toPoint());
-    }
-  }
-  else if (event->type() == QEvent::MouseButtonDblClick)
-  {
-    if (this->windowState() == Qt::WindowFullScreen)
-      this->setWindowState(Qt::WindowNoState);
-    else
-      this->setWindowState(Qt::WindowFullScreen);
   }
   return QObject::eventFilter(obj, event);
 }
@@ -194,63 +190,70 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 //   _WMP.ControlVolume(HWND(handle), isPositive, quantity);
 // }
 
-// Init, run and embed Chatterino process & window
+// Setup Chatterino process & widget & window
 void MainWindow::setupChatterino()
 {
   qDebugSlot() << "MainWindow::setupChatterino()";
-
-  if (_lChatterinoLock)
-    return;
-  _lChatterinoLock = true;
-  // If Chatterino isn't running, run
-  if (_pChatterinoProcess->state() == QProcess::NotRunning)
+  // If already embedded
+  if (_bDoubleClickedChannel)
   {
-    QTimer *findChatterino = new QTimer;
-    _pChatterinoProcess->start();
-    _pChatterinoProcess->waitForStarted();
-    connect(findChatterino, &QTimer::timeout, this,
-            [=]()
-            {
-              WId wid = WId(_WMP.getWID(_pChatterinoProcess->processId()));
-              if (wid != 0)
-              {
-                // Make QTimer monitoring for chat size changes
-                connect(monitorChatterinoWidth, &QTimer::timeout, this,
-                        [=]()
-                        {
-                          int tmpChatterinoWidth = _wChatterinoWindow->width();
-                          if (_chatterinoWidth != tmpChatterinoWidth && _lChatterinoLock != true)
-                          {
-                            _chatterinoWidth = tmpChatterinoWidth;
-                            ui->widget->setMinimumWidth(_chatterinoWidth);
-                            MainWindow::resizeEmbeds();
-                          }
-                        });
-                connect(monitorChatterinoHeight, &QTimer::timeout, this,
-                        [=]()
-                        {
-                          int tmpChatterinoHeight = _wChatterinoWindow->height();
-                          if (_chatterinoHeight != tmpChatterinoHeight && _lChatterinoLock != true)
-                            MainWindow::resizeEmbeds();
-                        });
-                // Setting part
-                _wChatterinoWindow = QWindow::fromWinId(wid);
-                findChatterino->deleteLater();
-                _chatContainer = createWindowContainer(_wChatterinoWindow);
-
-                _chatContainer->setParent(ui->widget); // TODO: Is this needed? possible duplicate of line 98 `_pChatterinoProcess = new QProcess(ui->widget);`
-                _chatContainer->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Expanding);
-                _chatContainer->show();
-                // connect(window, &QWindow::widthChanged, this, &MainWindow::resizeEmbeds);
-                _bChatterinoEmbedded = true;
-                _lChatterinoLock = false;
-                monitorChatterinoWidth->start(50);
-                monitorChatterinoHeight->start(50);
-                resizeEmbeds();
-              }
-            });
-    findChatterino->start(10);
+    _ChatContainer->quit();
+    _ChatContainer->process->terminate();
   }
+  else if (_ChatContainer->embedded)
+  {
+    _ChatContainer->quit();
+  }
+  _ChatContainer->process->setProgram(_Submodules->chatterinoPath());
+  // If process not running, start normal process of setup
+  QTimer *chatTerminated = new QTimer;
+  connect(chatTerminated, &QTimer::timeout, this,
+          [=]()
+          {
+            if (_ChatContainer->process->state() == QProcess::NotRunning)
+            {
+              chatTerminated->deleteLater();
+              emit loadChannel();
+              QPointer<QTimer> findChatterino(new QTimer);
+              _ChatContainer->process->start();
+              _ChatContainer->process->waitForStarted();
+              connect(findChatterino, &QTimer::timeout, this,
+                      [=]()
+                      {
+                        WId wid = WId(_WMP.getWID(_ChatContainer->process->processId()));
+                        if (wid != 0)
+                        {
+                          QSettings settings = QSettings(QSettings::NativeFormat, QSettings::UserScope, "streamlinkerino", "streamlinkerino"); // Registry setting
+                          settings.beginGroup("chatterino");
+
+                          findChatterino->deleteLater();
+                          _ChatContainer->window = QWindow::fromWinId(wid);
+                          settings.setValue("pos_x", _ChatContainer->window->position().x());
+                          settings.setValue("pos_y", _ChatContainer->window->position().y());
+                          settings.setValue("size_x", _ChatContainer->window->width());
+                          settings.setValue("size_y", _ChatContainer->window->height());
+                          _ChatContainer->widget = createWindowContainer(_ChatContainer->window);
+                          _ChatContainer->widget->setParent(ui->widget);
+                          _ChatContainer->widget->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Expanding);
+
+                          // ui->widget->resize(settings.value("embeddedsize_x", 600).toUInt(), _ChatContainer->widget->height());
+                          int width = settings.value("embeddedsize_x", 350).toUInt();
+                          width = width <= 100 ? 350 : width;
+                          ui->widget->setMaximumWidth(width);
+                          ui->widget->setMinimumWidth(width);
+                          //                          _ChatContainer->widget->resize(settings.value("embeddedsize_x", 200).toUInt(), _ChatContainer->widget->height());
+                          settings.endGroup();
+                          _ChatContainer->widget->show();
+                          _ChatContainer->sizer->start(100);
+                          _ChatContainer->embedded = true;
+                          _bDoubleClickedChannel = false;
+                          resizeEmbeds();
+                        }
+                      });
+              findChatterino->start(10);
+            }
+          });
+  chatTerminated->start(10);
 }
 
 // Init, run and change Streamlink process
@@ -258,15 +261,14 @@ void MainWindow::setupChatterino()
 // show on QPlainTextEdit debug
 // Update Statusbar
 // Load MPV when ready
-void MainWindow::setupStreamlink()
+void MainWindow::setupStream()
 {
-  qDebugSlot() << "MainWindow::setupStreamlink()";
+  qDebugSlot() << "MainWindow::setupStream()";
 
   if (_bDebug)
-  {
     ui->plainTextEdit->show();
-  }
-  QString s = _pStreamlinkProcess.at(_bStreamlinkProcessSelector)->readAll();
+
+  QString s = _StreamContainer.at(_bStreamSelector)->streamlinkProcess->readAll();
   ui->plainTextEdit->setPlainText(ui->plainTextEdit->toPlainText().append(s).append("\n"));
   // ui->statusbar->showMessage(s);
   if (s.contains("pre-roll ads"))
@@ -276,33 +278,34 @@ void MainWindow::setupStreamlink()
   }
   if (s.contains("player: mpv"))
   {
-    _mpvContainer->setParent(ui->widget_2);
-    _mpvContainer->show();
+    _MPVContainer->widget->setParent(ui->widget_2);
+    _MPVContainer->widget->show();
     ui->textEdit_SwitchAlert->hide();
     ui->plainTextEdit->hide();
-    _bStreamlinkAllowSwitching = true;
 
-    // Turnoff other streamlink if it's running
-    // half second delay for better transition
-    if (_pStreamlinkProcess.at(!_bStreamlinkProcessSelector)->state() != QProcess::NotRunning)
+    // TODO: switch to already opened channel with volume replacement
+    qint32 prevStreamIndex = _bStreamSelector == 0 ? _bStreamLimit - 1 : _bStreamSelector - 1;
+    if (_StreamContainer.at(prevStreamIndex)->streamlinkProcess->state() != QProcess::NotRunning)
     {
       QTimer::singleShot(600, this, [=]()
-                         { _pStreamlinkProcess.at(!_bStreamlinkProcessSelector)->kill(); });
+                         { _StreamContainer.at(prevStreamIndex)->streamlinkProcess->kill(); });
     }
     resizeEmbeds();
   }
 }
 
-// Init MVP container
-void MainWindow::setupMVP()
+// test Init MVP container
+void MainWindow::setupMPV()
 {
-  qDebugSlot() << "MainWindow::setupMVP()";
-  // Setup mpv container and wid //changed some ******************
-  QWindow *mpv_window = new QWindow;
-  _mpvContainerWID = mpv_window->winId();
-  _mpvContainer = createWindowContainer(mpv_window);
-  _mpvContainer->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Expanding);
-  _mpvContainer->hide();
+  qDebugSlot() << "MainWindow::setupMPV() test";
+  _MPVContainer = new MPVContainer;
+  _MPVContainer->window = new QWindow;
+  _MPVContainer->widget = createWindowContainer(_MPVContainer->window);
+  // _MPVContainer->widget->setParent(ui->widget_2);
+  _MPVContainer->widget->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Expanding);
+  _MPVContainer->widget->hide();
+  _MPVContainer->setEmbedded(true);
+  _bStreamLock = false;
 }
 
 // Load current channel from json file
@@ -352,110 +355,77 @@ void MainWindow::initialize()
   {
     qDebug_() << "Reinitialize";
     if (_Submodules->getChanges() & Submodules::ChangeFlags::Chatterino)
-    {
-      if (_pChatterinoProcess->state() == QProcess::NotRunning)
-        setupChatterino();
-      else
-      {
-        _lChatterinoLock = true;
-        _bChatterinoEmbedded = false;
-        quitChatterino();
-        QTimer *restart = new QTimer(this);
-        connect(restart, &QTimer::timeout, this,
-                [=]()
-                {
-                  if (_pChatterinoProcess->state() == QProcess::NotRunning)
-                  {
-                    restart->deleteLater();
-                    _pChatterinoProcess->setProgram(_Submodules->chatterinoPath());
-                    _lChatterinoLock = false;
-                    setupChatterino();
-                  }
-                });
-        restart->start(10);
-      }
-    }
+      _ChatContainer->process->setProgram(_Submodules->chatterinoPath());
     if (_Submodules->getChanges() & Submodules::ChangeFlags::StreamLink)
-    { // Only change program setting and don't touch current running stream
-      // To reload streamlink, click `load Stream` in context Menu
-      _pStreamlinkProcess[0]->setProgram(_Submodules->streamlinkPath());
-      _pStreamlinkProcess[1]->setProgram(_Submodules->streamlinkPath());
+    {
+      foreach (auto streamContainer, _StreamContainer)
+        streamContainer->streamlinkProcess->setProgram(_Submodules->streamlinkPath());
     }
   }
   else
   {
     qDebug_() << "Initialize";
-    // Init MVP
-    setupMVP();
 
     // Init Chatterino
-    _pChatterinoProcess = new QProcess(ui->widget);
-    _pChatterinoProcess->setProgram(_Submodules->chatterinoPath());
-    setupChatterino();
+    _ChatContainer = new ChatContainer;
+    _ChatContainer->process = new QProcess(ui->widget);
+    _ChatContainer->sizer = new QTimer;
 
-    // Init Streamlink
-    _pStreamlinkProcess << new QProcess(ui->widget_2) << new QProcess(ui->widget_2);
-    _pStreamlinkProcess[0]->setProgram(_Submodules->streamlinkPath());
-    _pStreamlinkProcess[1]->setProgram(_Submodules->streamlinkPath());
-    connect(_pStreamlinkProcess[0], &QProcess::readyRead, this, &MainWindow::setupStreamlink);
-    connect(_pStreamlinkProcess[1], &QProcess::readyRead, this, &MainWindow::setupStreamlink);
+    // Init MPV
+    setupMPV();
 
-    QString channel = MainWindow::loadCurrentChannel();
-    if (channel != "" && channel != _cChatChannel)
-    { // TODO: Check if works correctly
-      _cChatChannel = channel;
-      _pStreamlinkProcess.at(_bStreamlinkProcessSelector)->setArguments(_Submodules->getStreamLinkArguments(_cChatChannel, _mpvContainerWID));
-      _pStreamlinkProcess[_bStreamlinkProcessSelector]->start();
-    }
-    //    QTimer *initChatterinoFocus = new QTimer;
-    //    QTimer *initChatterinoFocus2 = new QTimer;
-    //    connect(initChatterinoFocus, &QTimer::timeout, this,
-    //            [=]()
-    //            {
-    //              if (_pChatterinoProcess->state() == QProcess::Running)
-    //              {
-    //                initChatterinoFocus2->start(10000);
-    //                initChatterinoFocus->deleteLater();
-    //              }
-    //            });
-    //    connect(initChatterinoFocus2, &QTimer::timeout, this,
-    //            [=]()
-    //            {
-    //              MainWindow::initChatterinoFocus();
-    //              initChatterinoFocus2->deleteLater();
-    //            });
-    //    initChatterinoFocus->start(10);
-  }
-}
-
-// NEED FIX
-void MainWindow::loadStream()
-{
-  MainWindow::quitChatterino();
-  // Load channel if new channel exists
-  QTimer *loadStream = new QTimer(this);
-  connect(loadStream, &QTimer::timeout, this,
-          [=]()
-          {
-            qDebug() << _pChatterinoProcess->state();
-            if (_pChatterinoProcess->state() == QProcess::NotRunning)
+    // Init Stream (streamlink & mpv)
+    for (auto i = 0; i < _bStreamLimit; i++)
+      _StreamContainer << new StreamContainer;
+    foreach (auto streamContainer, _StreamContainer)
+    {
+      // streamContainer->MPV = new MPVContainer;
+      streamContainer->streamlinkProcess = new QProcess(ui->widget_2);
+      streamContainer->streamlinkProcess->setProgram(_Submodules->streamlinkPath());
+      connect(streamContainer->streamlinkProcess, &QProcess::readyRead, this, &MainWindow::setupStream);
+    };
+    connect(this, &MainWindow::loadChannel, this,
+            [=]()
             {
               QString channel = loadCurrentChannel();
-              loadStream->deleteLater();
-              _lChatterinoLock = false;
-              setupChatterino();
-              if (channel == "" || _cChatChannel == channel)
+              if (channel == "" || _StreamContainer.at(_bStreamSelector)->channel == channel)
                 return;
               else
               {
-                _cChatChannel = channel;
-                _bStreamlinkProcessSelector = !_bStreamlinkProcessSelector;
-                _pStreamlinkProcess.at(_bStreamlinkProcessSelector)->setArguments(_Submodules->getStreamLinkArguments(_cChatChannel, _mpvContainerWID));
-                _pStreamlinkProcess[_bStreamlinkProcessSelector]->start();
+                _bStreamSelector = (_bStreamSelector + 1) % _bStreamLimit;
+                _StreamContainer.at(_bStreamSelector)->channel = channel;
+                _StreamContainer.at(_bStreamSelector)->streamlinkProcess->setArguments(_Submodules->getStreamLinkArguments(channel, _MPVContainer->window->winId()));
+                _StreamContainer.at(_bStreamSelector)->streamlinkProcess->start();
               }
-            }
-          });
-  loadStream->start(10);
+            });
+    connect(this, &MainWindow::refreshChannel, this,
+            [=]()
+            {
+              QString channel = loadCurrentChannel();
+              {
+                _bStreamSelector = (_bStreamSelector + 1) % _bStreamLimit;
+                _StreamContainer.at(_bStreamSelector)->channel = channel;
+                _StreamContainer.at(_bStreamSelector)->streamlinkProcess->setArguments(_Submodules->getStreamLinkArguments(channel, _MPVContainer->window->winId()));
+                _StreamContainer.at(_bStreamSelector)->streamlinkProcess->start();
+              }
+            });
+    connect(_ChatContainer->sizer, &QTimer::timeout, this,
+            [=]()
+            {
+              ui->widget->setMaximumWidth(_ChatContainer->window->width());
+              ui->widget->setMinimumWidth(_ChatContainer->window->width());
+              MainWindow::resizeEmbeds();
+            });
+    loadStream();
+  }
+}
+
+void MainWindow::loadStream()
+{
+  qDebugSlot() << "MainWindow::loadStream()";
+  _ChatContainer->lock = true;
+  setupChatterino();
+  _ChatContainer->lock = false;
 }
 
 void MainWindow::experimental()
@@ -466,21 +436,16 @@ void MainWindow::experimental()
 void MainWindow::refreshStream()
 {
   qDebugSlot() << "MainWindow::refreshStream()";
-  if (_bStreamlinkAllowSwitching)
-  {
-    _bStreamlinkProcessSelector = !_bStreamlinkProcessSelector;
-    _bStreamlinkAllowSwitching = !_bStreamlinkAllowSwitching;
-  }
-  auto tChannel = _cChatChannel;
-  _cChatChannel = "";
-  _pStreamlinkProcess.at(_bStreamlinkProcessSelector)->setArguments(_Submodules->getStreamLinkArguments(tChannel, _mpvContainerWID));
-  _pStreamlinkProcess.at(_bStreamlinkProcessSelector)->start();
+  if (_bStreamLock == true)
+    return;
+  else
+    emit refreshChannel();
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
   // qDebugSlot() << "MainWindow::resizeEvent(QResizeEvent *event)";
-  if (_bChatterinoEmbedded == true && _lChatterinoLock == false)
+  if (_ChatContainer->isEmbedded() && !_ChatContainer->lock && !_bStreamLock && _MPVContainer->isEmbedded() && _StreamContainer.at(_bStreamSelector)->isRunning()) // ADD EMBEDDED
     resizeEmbeds();
   event->accept();
 }
@@ -488,27 +453,16 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 void MainWindow::resizeEmbeds()
 {
   // qDebug2() << "MainWindow::resizeEmbeds()";
-  QTimer::singleShot(10, this,
-                     [=]()
-                     {
-                       _chatContainer->setGeometry(0, 1, ui->widget->geometry().width(), ui->widget->geometry().height() - 1);
-                       _mpvContainer->setGeometry(9, 32, ui->widget_2->geometry().width() - 18, ui->widget_2->geometry().height() - 20);
-                     });
-  // Load screen setting from registry.
-  QSettings settings = QSettings(QSettings::NativeFormat, QSettings::UserScope, "streamlinkerino", "streamlinkerino"); // Registry setting
-  settings.beginGroup("screen");
-  settings.setValue("screenpos_x", this->pos().x());
-  settings.setValue("screenpos_y", this->pos().y());
-  settings.setValue("screensize_x", this->width());
-  settings.setValue("screensize_y", this->height());
-  settings.endGroup();
+  _ChatContainer->widget->setGeometry(0, 0, ui->widget->geometry().width(), ui->widget->geometry().height());
+  _MPVContainer->widget->setGeometry(0, 0, ui->widget_2->geometry().width(), ui->widget_2->geometry().height());
+  // _ChatContainer->window->setPosition(QPoint(0, 0));
 }
 
 QString MainWindow::generateStatusHTML(bool bPrerollAds)
 {
   qDebug2() << "MainWindow::generateStatusHTML(bool bPrerollAds)";
   QString out = "<body style=\" font-family:'Callibri'; font-size:11pt; font-weight:400; font-style:normal;\"><p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Callibri'; font-size:11pt; color:#f9f9f9;\">Switching to Channel: </span><span style=\" font-weight:600; color:#0ef0ce;\">";
-  out += _cChatChannel;
+  out += _StreamContainer.at(_bStreamSelector)->channel;
   out += "</span>. ";
   if (bPrerollAds)
     out += "<span style=\" font-family:'Callibri'; font-size:11pt; color:#f9f9f9;\">Waiting for </span><span style=\" font-weight:600; color:#00ff00;\">pre-roll ads</span><span style=\" color:#00ff00;\"> to finish</span><span style=\" font-family:'Callibri'; font-size:11pt; color:#f9f9f9;\">!</span></p></body>";

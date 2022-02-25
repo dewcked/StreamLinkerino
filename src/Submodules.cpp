@@ -38,7 +38,7 @@ QString SubmodulesDialog::chatterinoPath() { return _chatterinoPath; }
 
 QString SubmodulesDialog::streamlinkArguments() { return _streamlinkArgs; }
 
-QStringList SubmodulesDialog::getStreamLinkArguments(QString channel, unsigned long mpvContainer)
+QStringList SubmodulesDialog::getStreamLinkArguments(QString channel, WId mpvContainer)
 {
   return _SL->getArgs(channel, mpvContainer);
 }
@@ -142,7 +142,7 @@ void SubmodulesDialog::setupConnections()
             QString chatterino = "chatterino.exe";
             qDebug() << "(input)path: " << path;
 
-            if (!(path.length() > chatterino.length() && chatterino == path[path.length() - chatterino.length()]))
+            if (!(path.length() > chatterino.length() && chatterino == path.mid(path.length() - chatterino.length())))
             {
               if (path[path.length() - 1] != '/')
                 path += '/';
@@ -176,7 +176,7 @@ void SubmodulesDialog::setupConnections()
             QString streamlink = "streamlink.exe";
             qDebug() << "(input)path: " << path;
 
-            if (!(path.length() > streamlink.length() && streamlink == path[path.length() - streamlink.length()]))
+            if (!(path.length() > streamlink.length() && streamlink == path.mid(path.length() - streamlink.length())))
             {
               if (path[path.length() - 1] != '/')
                 path += '/';
@@ -252,7 +252,7 @@ void SubmodulesDialog::hideAlerts()
 
 int Submodules::SubmodulesDialog::getChanges() { return _changes; } //?
 
-QStringList Streamlink::getArgs(QString channel, unsigned long mpvContainer) //
+QStringList Streamlink::getArgs(QString channel, WId mpvContainer) //
 {
   QStringList args;
   args << "--twitch-low-latency";
