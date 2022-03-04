@@ -43,7 +43,6 @@ namespace streamlinkerino {
       {Qt::Key_BraceRight, "}"},   // double current playback speed
       {Qt::Key_Backspace, "BS"},   // Reset playback speed to normal
       {Qt::Key_Period, "."},       // Stop stream temporary and Step forward
-      {Qt::Key_Comma, ","},        // Stop stream temporary and Step backward
       {Qt::Key_S, "s"},            // Take a screenshot
       {Qt::Key_D, "d"},            // Testing - Activate/deactivate deinterlacer.
       {Qt::Key_1, "1"},            // Adjust contrast
@@ -54,10 +53,9 @@ namespace streamlinkerino {
       {Qt::Key_6, "6"},            // Adjust gamma
       {Qt::Key_7, "7"},            // Adjust saturation
       {Qt::Key_8, "8"},            // Adjust saturation
-      {Qt::Key_Stop, "STOP"},      // Stop playing and quit
       {-20, "Alt++"},              // Zoom in
       {-21, "Alt+-"},              // Zoom out
-      {-22, "Alt+BS"},             // Move down
+      {-22, "Alt+BS"},             // Zoom default
       {-23, "Alt+LEFT"},           // Move left
       {-24, "Alt+RIGHT"},          // Move right
       {-25, "Alt+UP"},             // Move up
