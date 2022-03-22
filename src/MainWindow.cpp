@@ -167,6 +167,7 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
           case Qt::Key_Plus:
             [[fallthrough]];
           case Qt::Key_Equal:
+            qDebug() << "Ad";
             if (_pressedKeys.contains(Qt::Key_Alt))
               _MPVContainer->socket->inputCommand(-20, "keypress ");
             else if (_pressedKeys.contains(Qt::Key_Control))
