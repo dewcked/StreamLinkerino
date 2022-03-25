@@ -37,7 +37,7 @@ namespace streamlinkerino {
     }
   }
   qsizetype ChatterinoJSON::channalCount() const { return channels.count(); }
-  QList<QString> ChatterinoJSON::getChannels() const { return channels; }
+  QStringList ChatterinoJSON::getChannels() const { return channels; }
   void ChatterinoJSON::addChannel(const QString& channel) {
     channels.push_back(channel);
   }

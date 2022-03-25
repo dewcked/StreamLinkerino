@@ -1,7 +1,6 @@
-#pragma once
 #include <QApplication>
 
-#include "mainwindow.h"
+#include "MainWindow.h"
 #include "os/darkmode.h"
 
 int main(int argc, char* argv[]) {

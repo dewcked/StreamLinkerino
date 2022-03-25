@@ -6,8 +6,7 @@
 #include "path.h"
 namespace streamlinkerino {
   namespace g {
-    QSettings localSettings = QSettings(
-        QSettings::NativeFormat, QSettings::UserScope, "streamlinkerino", "streamlinkerino");
+    QSettings localSettings(QSettings::NativeFormat, QSettings::UserScope, "streamlinkerino", "streamlinkerino");
   }
   QMap<int, QString> keyBinding = {
       // Increase volume

@@ -1,4 +1,5 @@
 #pragma once
+#include <QDebug>
 
 #define qDebug2() qDebug() << "  └"
 #define qDebug3() qDebug() << "    └"

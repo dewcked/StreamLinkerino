@@ -99,8 +99,8 @@ namespace streamlinkerino {
       text = "Can't find MPVplayer. <a href='https://mpv.io/installation/'>Click here</a> to "
              "install from official website. If You already installed MPVplayer, please include "
              "the path in environment variable.";
-      if (WinDark::isDarkTheme())
-        WinDark::setDark_Titlebar(reinterpret_cast<HWND>(alert.winId()));
+      if (streamlinkerino::isDarkTheme())
+        streamlinkerino::setDarkTitlebar(alert.winId());
       alert.setTextFormat(Qt::RichText); // Make links clickable
       alert.setText(text);
       alert.exec();

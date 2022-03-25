@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
+#include "debug.h"
 
 #include "darkmode.h"
 #include "path.h"
@@ -54,7 +55,7 @@ void SettingsDialog::setupConnections() {
     if (!path.isEmpty())
       ui->lineEdit_chatterinoPath->setText(path);
   });
-  connect(ui->toolButton_chatterino, &QToolButton::triggered, this, [=]() { ; });
+  // connect(ui->toolButton_chatterino, &QToolButton::triggered, this, [=]() { ; });
   connect(this, &SettingsDialog::exeFound, this, [=]() {
     if (ui->label_chatterinoAlert->text() == streamlinkerino::path::CHATTERINO_EXE + " Found"
         && ui->label_streamlinkAlert->text() == streamlinkerino::path::STREAMLINK_EXE + " Found")
@@ -105,8 +106,8 @@ void SettingsDialog::showDialog(QString chatterinoPath,
   ui->lineEdit_streamLinkPath->setText(streamlinkPath);
   ui->lineEdit_streamLinkOptions->setText(streamlinkArgs);
   ui->comboBox_StreamlinkQuality->setCurrentIndex(streamlinkerino::StreamQuality[streamQuality]);
-  if (WinDark::isDarkTheme())
-    WinDark::setDark_Titlebar(reinterpret_cast<HWND>(winId()));
+  if (streamlinkerino::isDarkTheme())
+    streamlinkerino::setDarkTitlebar(winId());
   this->show();
 }
 

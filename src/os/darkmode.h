@@ -6,3 +6,8 @@
 #else
 // #include "linux/linuxdark.h"?
 #endif
+
+namespace streamlinkerino{
+  bool isDarkTheme();
+  void setDarkTitlebar(WId winId);
+}

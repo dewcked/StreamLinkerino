@@ -8,7 +8,7 @@ namespace streamlinkerino {
     _display = XOpenDisplay(0);
     // Get the PID property atom.
     _atomPID = XInternAtom(_display, "_NET_WM_PID", True);
-    if (_atomPID == None) {
+    if (_atomPID == 0L) {
       qWarning("No Such Atom");
       return;
     }

@@ -1,8 +1,6 @@
 streamlinkerino.pro.qtds
 streamlinkerino.pro.user
-streamlinkerino.pro.user
 .*
 Makefile.*
-
 CMakeLists.txt.user
-streamlinkerino.pro.user
+Streamlinkerino-*.*

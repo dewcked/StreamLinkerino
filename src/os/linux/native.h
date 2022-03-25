@@ -1,8 +1,18 @@
 // Explictly including QActionGroup fixes compile bug on linux
 #pragma once
+#include <qactiongroup.h>
+
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
-#include <qactiongroup.h>
+
+#undef None
+#undef KeyPress
+#undef KeyRelease
+#undef FocusIn
+#undef FocusOut
+#undef FontChange
+#undef Expose
+#undef Status
 
 #include <QDebug>
 

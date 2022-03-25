@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(streamlinkerino VERSION 1.1 LANGUAGES CXX)
+project(Streamlinkerino VERSION 1.1 LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -10,6 +10,12 @@ set(CMAKE_AUTORCC ON)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# glibc compatible
+# if(UNIX)
+#     include("src/glibc/force_link_glibc_2.5.h")
+#     include("src/glibc/force_link_glibc_2.5.h")
+# endif (UNIX)
 
 # icon..?
 set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/icon.qrc")
@@ -28,7 +34,8 @@ set(CMAKE_AUTOUIC_SEARCH_PATHS src/Forms)
 set(PROJECT_SOURCES
     src/chatterino/chatterinojson.cpp
     src/main.cpp
-    src/mainwindow.cpp
+    src/MainWindow.cpp
+    src/os/darkmode.cpp
     src/settings.cpp
     src/settingsdialog.cpp
     src/type.cpp
@@ -37,7 +44,7 @@ set(PROJECT_SOURCES
 set(PROJECT_HEADERS
     src/chatterino/chatterinojson.h
     src/debug.h
-    src/mainwindow.h
+    src/MainWindow.h
     src/os/darkmode.h
     src/os/path.h
     src/settings.h
@@ -77,7 +84,7 @@ if(UNIX)
 endif (UNIX)
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(streamlinkerino
+    qt_add_executable(Streamlinkerino
         MANUAL_FINALIZATION
         ${OS_PROJECT_SOURCES}
         ${OS_PROJECT_HEADERS}
@@ -85,12 +92,12 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_HEADERS}
     )
 # Define target properties for Android with Qt 6 as:
-#    set_property(TARGET streamlinkerino APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
+#    set_property(TARGET Streamlinkerino APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
 #                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
 # For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 else()
     if(ANDROID)
-        add_library(streamlinkerino SHARED
+        add_library(Streamlinkerino SHARED
             ${OS_PROJECT_SOURCES}
             ${OS_PROJECT_HEADERS}
             ${PROJECT_SOURCES}
@@ -99,7 +106,7 @@ else()
 # Define properties for Android with Qt 5 after find_package() calls as:
 #    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
-        add_executable(streamlinkerino
+        add_executable(Streamlinkerino
             ${OS_PROJECT_SOURCES}
             ${OS_PROJECT_HEADERS}
             ${PROJECT_SOURCES}
@@ -109,12 +116,12 @@ else()
 endif()
 
 if(WIN32)
-    target_link_libraries(streamlinkerino PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network USER32)
+    target_link_libraries(Streamlinkerino PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network USER32)
 endif (WIN32)
 if(UNIX)
-    target_link_libraries(streamlinkerino PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network X11)
+    target_link_libraries(Streamlinkerino PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network X11)
 endif (UNIX)
-set_target_properties(streamlinkerino PROPERTIES
+set_target_properties(Streamlinkerino PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
@@ -123,5 +130,9 @@ set_target_properties(streamlinkerino PROPERTIES
 )
 
 if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(streamlinkerino)
+    qt_finalize_executable(Streamlinkerino)
 endif()
+
+install(TARGETS Streamlinkerino DESTINATION bin COMPONENT binaries)
+
+add_subdirectory(resource)
